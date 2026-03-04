@@ -61,7 +61,7 @@ fi
 echo "[*] Linking configs into home directory..."
 ln -sf "$REPO_DIR/zsh/.zshrc" "$HOME/.zshrc"
 ln -sf "$REPO_DIR/zsh/.p10k.zsh" "$HOME/.p10k.zsh"
-
+ln -sf "$REPO_DIR/tmux/.tmux.conf" "$HOME/.tmux.conf"
 # --- 6) Debian naming compatibility (bat/fd) ---
 # Create lightweight shims in ~/.local/bin so commands are uniform across machines.
 mkdir -p "$HOME/.local/bin"
