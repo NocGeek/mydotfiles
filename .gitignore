@@ -1,0 +1,4 @@
+# never commit shell history or caches
+.zsh_history
+zsh_trace.log
+**/.DS_Store
