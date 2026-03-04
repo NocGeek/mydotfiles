@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Outputs: CPU xx% | MEM yy% | LA a.b c.d e.f
+# Designed to be called by tmux status line every few seconds.
+
+# --- CPU usage (delta from last call using /tmp state) ---
+STATE="/tmp/tmux_cpu_${UID}.state"
+
+read_cpu() {
+  # user nice system idle iowait irq softirq steal guest guest_nice
+  awk '/^cpu /{print $2,$3,$4,$5,$6,$7,$8,$9}' /proc/stat
+}
+
+calc_cpu_pct() {
+  local cur prev
+  cur="$(read_cpu)"
+  if [[ -f "$STATE" ]]; then
+    prev="$(cat "$STATE")"
+  else
+    prev="$cur"
+  fi
+  echo "$cur" > "$STATE"
+
+  # shellcheck disable=SC2206
+  local c=($cur)
+  # shellcheck disable=SC2206
+  local p=($prev)
+
+  local c_idle=$(( c[3] + c[4] ))
+  local p_idle=$(( p[3] + p[4] ))
+
+  local c_total=0 p_total=0
+  for v in "${c[@]}"; do c_total=$((c_total + v)); done
+  for v in "${p[@]}"; do p_total=$((p_total + v)); done
+
+  local d_total=$((c_total - p_total))
+  local d_idle=$((c_idle - p_idle))
+
+  if (( d_total <= 0 )); then
+    echo "0"
+    return
+  fi
+
+  # integer percent
+  echo $(( (100 * (d_total - d_idle)) / d_total ))
+}
+
+cpu_pct="$(calc_cpu_pct)"
+
+# --- Memory usage (from /proc/meminfo) ---
+mem_pct="$(
+  awk '
+    /^MemTotal:/     {t=$2}
+    /^MemAvailable:/ {a=$2}
+    END {
+      if (t > 0) {
+        used = t - a
+        printf "%d", (used * 100) / t
+      } else {
+        printf "0"
+      }
+    }
+  ' /proc/meminfo
+)"
+
+# --- Load average ---
+load_avg="$(cut -d' ' -f1-3 /proc/loadavg)"
+
+printf "CPU %s%% | MEM %s%% | LA %s" "$cpu_pct" "$mem_pct" "$load_avg"

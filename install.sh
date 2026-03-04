@@ -5,6 +5,20 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "[*] Repo: $REPO_DIR"
 
+# --- 0) Stable path for tooling/scripts ---
+# tmux config calls ~/.dotfiles/bin/tmux_sysinfo so we ensure that path exists.
+if [ -e "$HOME/.dotfiles" ] && [ ! -L "$HOME/.dotfiles" ] && [ ! -d "$HOME/.dotfiles" ]; then
+  echo "[!] $HOME/.dotfiles exists but is not a directory/symlink. Please fix manually."
+  exit 1
+fi
+
+if [ ! -e "$HOME/.dotfiles" ]; then
+  ln -s "$REPO_DIR" "$HOME/.dotfiles"
+elif [ -L "$HOME/.dotfiles" ]; then
+  # repoint symlink in case repo moved
+  ln -snf "$REPO_DIR" "$HOME/.dotfiles"
+fi
+
 # --- 1) Install packages (Debian/Ubuntu) ---
 if command -v apt >/dev/null 2>&1; then
   echo "[*] Installing base packages via apt..."
@@ -62,7 +76,11 @@ echo "[*] Linking configs into home directory..."
 ln -sf "$REPO_DIR/zsh/.zshrc" "$HOME/.zshrc"
 ln -sf "$REPO_DIR/zsh/.p10k.zsh" "$HOME/.p10k.zsh"
 ln -sf "$REPO_DIR/tmux/.tmux.conf" "$HOME/.tmux.conf"
-# --- 6) Debian naming compatibility (bat/fd) ---
+
+# --- 6) Ensure helper scripts executable ---
+chmod +x "$REPO_DIR/bin/"* 2>/dev/null || true
+
+# --- 7) Debian naming compatibility (bat/fd) ---
 # Create lightweight shims in ~/.local/bin so commands are uniform across machines.
 mkdir -p "$HOME/.local/bin"
 
@@ -74,7 +92,7 @@ if ! command -v fd >/dev/null 2>&1 && command -v fdfind >/dev/null 2>&1; then
   ln -sf "$(command -v fdfind)" "$HOME/.local/bin/fd"
 fi
 
-# --- 7) Ensure default shell is zsh (best-effort) ---
+# --- 8) Ensure default shell is zsh (best-effort) ---
 if command -v chsh >/dev/null 2>&1; then
   if [ "${SHELL:-}" != "/usr/bin/zsh" ] && [ -x /usr/bin/zsh ]; then
     echo "[*] Setting default shell to /usr/bin/zsh (may prompt)..."
