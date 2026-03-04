@@ -1,143 +1,123 @@
-# =========================
-#  Powerlevel10k (instant prompt)
-# =========================
-# Must be at the very top. Anything that can prompt for input goes ABOVE this.
+# ~/.zshrc (managed by dotfiles)
+
+### ----------------------------
+### Fast prompt (Powerlevel10k)
+### ----------------------------
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-# =========================
-#  Basics
-# =========================
-export EDITOR=vim
-setopt prompt_subst
+### ----------------------------
+### PATH / Basics
+### ----------------------------
+export PATH="$HOME/.local/bin:$HOME/bin:$PATH"
+export EDITOR="${EDITOR:-vim}"
+export VISUAL="${VISUAL:-vim}"
+export PAGER="${PAGER:-less}"
+export LESS="${LESS:--R -F -X -K}"
 
-# PATH (keep this early so everything later can see it)
-export PATH="$HOME/.local/bin:$PATH"
-
-# =========================
-#  History (large, shared, deduped, timestamped)
-# =========================
-HISTFILE="$HOME/.zsh_history"
-HISTSIZE=500000
-SAVEHIST=500000
-
+### ----------------------------
+### History (per-machine)
+### ----------------------------
+export HISTFILE="$HOME/.zsh_history"
+export HISTSIZE=50000
+export SAVEHIST=50000
 setopt APPEND_HISTORY
+setopt INC_APPEND_HISTORY
 setopt SHARE_HISTORY
-setopt INC_APPEND_HISTORY_TIME
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_SPACE
 setopt EXTENDED_HISTORY
 
-setopt HIST_IGNORE_DUPS
-setopt HIST_IGNORE_ALL_DUPS
-setopt HIST_IGNORE_SPACE
-setopt HIST_SAVE_NO_DUPS
-setopt HIST_REDUCE_BLANKS
-setopt HIST_VERIFY
+### ----------------------------
+### Oh-My-Zsh
+### ----------------------------
+export ZSH="$HOME/.oh-my-zsh"
+plugins=(git)
+export ZSH_THEME="powerlevel10k/powerlevel10k"
+[[ -r "$ZSH/oh-my-zsh.sh" ]] && source "$ZSH/oh-my-zsh.sh"
 
-# =========================
-#  # Comments behavior (pick ONE)
-# =========================
-# Option A (recommended for most people):
-#   - You can type:   # comment
-#   - But if you paste a URL/command containing '#', everything after # is ignored unless quoted/escaped.
-# setopt interactive_comments
-
-# Option B (recommended if you frequently paste URLs/fragments with #):
-#   - Pasted commands with # won't get truncated
-#   - But typing:  # comment   will try to run a command named '#'
-unsetopt interactive_comments
-
-# Tip if you use Option A and paste URLs with #:
-#   quote them:  curl "https://example.com/page#section"
-#   or escape:   https://example.com/page\#section
-
-# =========================
-#  Completion
-# =========================
-autoload -Uz compinit
-
-# Use a per-host compdump to avoid weirdness when sharing home dirs
-ZSH_COMPDUMP="${XDG_CACHE_HOME:-$HOME/.cache}/zcompdump-${HOST}"
-compinit -d "$ZSH_COMPDUMP"
-
-setopt AUTO_MENU
-setopt MENU_COMPLETE
-setopt CORRECT
-
-zstyle ':completion:*' menu select
-zstyle ':completion:*' verbose true
-zstyle ':completion:*' matcher-list \
-  '' \
-  'm:{a-z}={A-Z}' \
-  'm:{a-zA-Z}={A-Za-z}' \
-  'r:|[._-]=* r:|=* l:|=*'
-
-# Colors for completion lists (if LS_COLORS exists)
-if command -v dircolors >/dev/null 2>&1; then
-  eval "$(dircolors -b)"
-  zstyle ':completion:*:default' list-colors "${(s.:.)LS_COLORS}"
+### ----------------------------
+### Tool naming compatibility (Debian)
+### ----------------------------
+if ! command -v bat >/dev/null 2>&1 && command -v batcat >/dev/null 2>&1; then
+  alias bat="batcat"
+fi
+if ! command -v fd >/dev/null 2>&1 && command -v fdfind >/dev/null 2>&1; then
+  alias fd="fdfind"
 fi
 
-# =========================
-#  Keybinds + paste fixes
-# =========================
-bindkey -e  # emacs bindings
+### ----------------------------
+### Modern CLI aliases (only if tool exists)
+### ----------------------------
 
-autoload -Uz bracketed-paste-magic
-zle -N bracketed-paste bracketed-paste-magic
+# eza (modern ls)
+# Icons require a Nerd Font in YOUR LOCAL terminal.
+# Enable icons by setting: export EZA_ICONS=1
+if command -v eza >/dev/null 2>&1; then
+  EZA_ICON_FLAG=""
+  [[ "${EZA_ICONS:-0}" = "1" ]] && EZA_ICON_FLAG="--icons"
 
-# Home/End (common terminals)
-bindkey '^[[H' beginning-of-line
-bindkey '^[[F' end-of-line
-
-# Arrow-key history (use normal up/down by default)
-bindkey '^[OA' up-history
-bindkey '^[OB' down-history
-bindkey '^[[A' up-history
-bindkey '^[[B' down-history
-
-# =========================
-#  Colorized ls/grep + common aliases
-# =========================
-alias ls='ls --color=auto'
-alias ll='ls -alF --color=auto'
-alias la='ls -A --color=auto'
-alias l='ls -CF --color=auto'
-alias grep='grep --color=auto'
-
-# =========================
-#  Plugins (standalone, no Oh-My-Zsh)
-# =========================
-# Autosuggestions (loads fast, should be before syntax-highlighting)
-if [[ -r ~/.zsh-plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
-  source ~/.zsh-plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
-  ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=8'
+  alias ls="eza ${EZA_ICON_FLAG}"
+  alias ll="eza -lh ${EZA_ICON_FLAG}"
+  alias la="eza -lha ${EZA_ICON_FLAG}"
+  alias lt="eza --tree --level=2 ${EZA_ICON_FLAG}"
 fi
 
-# Syntax highlighting (must be after autosuggestions)
-if [[ -r ~/.zsh-plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
-  source ~/.zsh-plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+# bat (modern cat)
+if command -v bat >/dev/null 2>&1; then
+  alias cat='bat --style=plain'
 fi
 
-# Optional (highly recommended): history substring search
-# Lets Up/Down match what you've typed so far (often feels like "better autocomplete")
-if [[ -r ~/.zsh-plugins/zsh-history-substring-search/zsh-history-substring-search.zsh ]]; then
-  source ~/.zsh-plugins/zsh-history-substring-search/zsh-history-substring-search.zsh
-  bindkey '^[[A' history-substring-search-up
-  bindkey '^[[B' history-substring-search-down
-  bindkey '^[OA' history-substring-search-up
-  bindkey '^[OB' history-substring-search-down
+# rg (modern grep)
+if command -v rg >/dev/null 2>&1; then
+  alias grep='rg'
 fi
 
-# =========================
-#  Powerlevel10k theme
-# =========================
-# Theme first...
-if [[ -r ~/.powerlevel10k/powerlevel10k.zsh-theme ]]; then
-  source ~/.powerlevel10k/powerlevel10k.zsh-theme
+# Safer defaults
+alias cp='cp -iv'
+alias mv='mv -iv'
+alias rm='rm -iv'
+
+# Convenience
+alias dfh='df -h'
+alias duh='du -h --max-depth=1'
+alias path='echo $PATH | tr ":" "\n"'
+
+### ----------------------------
+### zoxide (smart cd)
+### ----------------------------
+if command -v zoxide >/dev/null 2>&1; then
+  eval "$(zoxide init zsh)"
 fi
 
-# ...then your p10k config (prompt settings)
-if [[ -r ~/.p10k.zsh ]]; then
-  source ~/.p10k.zsh
+### ----------------------------
+### fzf (history + file search)
+### ----------------------------
+if command -v fzf >/dev/null 2>&1; then
+  [[ -r /usr/share/doc/fzf/examples/key-bindings.zsh ]] && source /usr/share/doc/fzf/examples/key-bindings.zsh
+  [[ -r /usr/share/doc/fzf/examples/completion.zsh ]] && source /usr/share/doc/fzf/examples/completion.zsh
+
+  if command -v fd >/dev/null 2>&1; then
+    export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
+    export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+  fi
 fi
+
+### ----------------------------
+### zsh-autosuggestions + syntax-highlighting
+### ----------------------------
+ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
+
+if [[ -r "$ZSH_CUSTOM/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh" ]]; then
+  source "$ZSH_CUSTOM/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
+fi
+
+if [[ -r "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]]; then
+  source "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+fi
+
+### ----------------------------
+### Powerlevel10k config
+### ----------------------------
+[[ -r "$HOME/.p10k.zsh" ]] && source "$HOME/.p10k.zsh"
